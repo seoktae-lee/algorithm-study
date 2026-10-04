@@ -7,7 +7,7 @@
   ./cote new 42576        문제 폴더 생성 (Solution.java + NOTE.md) + 브라우저로 문제 열기
   ./cote run 42576        로컬 실행 (Solution.main)
   ./cote done 42576       풀이 기록 → README 대시보드 갱신 → commit & push
-  ./cote redo 42576       재풀이 기록 (해설 없이 다시 풀기)
+  ./cote redo 42576       복습 기록 (간격 반복: 3→7→21→60일, 보통은 cote가 알아서 띄움)
   ./cote status [--json]  현재 위치 (루틴이 --json 사용)
 """
 import csv, json, math, os, re, subprocess, sys, time
@@ -120,19 +120,48 @@ def week_range(d):
     return start, start + timedelta(days=6)
 
 
-def due_redos(cfg, records, d):
-    """💡/❌ 후 N일 지났고 아직 ✅로 안 바뀐 문제"""
-    best = best_status(records)
+def problem_tags(cfg, pid):
+    p, _ = find_problem(cfg, int(pid))
+    return p["tags"] if p else []
+
+
+def review_schedule(cfg, records):
+    """문제별 간격 반복 상태: stage(0=3일,1=7일,2=21일,3=60일, 4=졸업), 마지막 날짜, 다음 복습일"""
+    iv = cfg["review_intervals"]
+    sched = {}
+    for r in sorted(records, key=lambda x: x["date"]):
+        pid, ok = r["id"], r["result"] == "✅"
+        st = sched.get(pid)
+        if r["kind"] == "first" or st is None:
+            stage = 1 if ok else 0
+        else:
+            stage = st["stage"] + 1 if ok else 0
+        sched[pid] = {"id": int(pid), "title": r["title"], "level": int(r["level"]), "stage": stage,
+                      "last": r["date"], "last_result": r["result"],
+                      "due": (date.fromisoformat(r["date"]) + timedelta(days=iv[stage])).isoformat() if stage < len(iv) else None}
+    return sched
+
+
+def review_queue(cfg, records, d):
+    """오늘 복습할 문제: 💡·❌(약한 것) 먼저, 그다음 오래 밀린 순"""
+    iv = cfg["review_intervals"]
     due = []
-    for pid, r in best.items():
-        if r["result"] == "✅":
-            continue
-        last = max(x["date"] for x in records if x["id"] == pid)
-        when = date.fromisoformat(last) + timedelta(days=cfg["redo_after_days"])
-        if when <= d:
-            due.append({"id": int(pid), "title": r["title"], "level": int(r["level"]),
-                        "last_result": r["result"], "due": when.isoformat(), "url": url(pid)})
-    return sorted(due, key=lambda x: x["due"])
+    for x in review_schedule(cfg, records).values():
+        if x["due"] and x["due"] <= d.isoformat() and x["last"] != d.isoformat():
+            reason = "약점 재도전" if x["last_result"] != "✅" else f"{iv[x['stage']]}일 간격 복습"
+            due.append(dict(x, reason=reason, url=url(x["id"]), tags=problem_tags(cfg, x["id"])))
+    return sorted(due, key=lambda x: (x["last_result"] == "✅", x["due"]))
+
+
+def weak_tags(cfg, records, top=3):
+    """💡·❌가 나온 유형 집계 → 약점 유형"""
+    cnt = {}
+    for r in records:
+        if r["result"] != "✅":
+            for t in problem_tags(cfg, r["id"]):
+                if t not in ("고득점Kit", "카카오"):
+                    cnt[t] = cnt.get(t, 0) + 1
+    return [t for t, _ in sorted(cnt.items(), key=lambda x: -x[1])[:top]]
 
 
 def next_new(cfg, records, d, n):
@@ -161,6 +190,8 @@ def status(cfg, records, d=None):
     nxt_target = next(((t, n) for t, n in cfg["targets"] if lv < t), None)
     all_ids = [p["id"] for x in cfg["phases"] for p in x["problems"]]
     done_ids = {int(k) for k, v in best.items() if v["result"] != "❌"}
+    sched = review_schedule(cfg, records)
+    queue = review_queue(cfg, records, d)
     return {
         "date": d.isoformat(),
         "xp": round(xp, 1), "level": round(lv, 1), "tier": tier_of(cfg, lv),
@@ -169,11 +200,15 @@ def status(cfg, records, d=None):
         "solved_by_level": dict(sorted(by_level.items())),
         "roadmap_done": len([i for i in all_ids if i in done_ids]), "roadmap_total": len(all_ids),
         "streak_days": streak(records, d),
-        "phase": {k: ph[k] for k in ("key", "name", "start", "end", "daily_min", "weekly_target", "focus")},
+        "phase": {k: ph[k] for k in ("key", "name", "start", "end", "daily_min", "weekly_target", "review_cap", "focus")},
         "week": {"start": ws.isoformat(), "end": we.isoformat(), "done": len(week_recs), "target": ph["weekly_target"]},
         "today_done": [{k: r[k] for k in ("id", "title", "kind", "result", "minutes", "note")} for r in today_recs],
         "today_new": next_new(cfg, records, d, max(ph["daily_min"], 1)),
-        "today_redo": due_redos(cfg, records, d),
+        "today_redo": queue[:ph["review_cap"]],
+        "review_backlog": max(0, len(queue) - ph["review_cap"]),
+        "review_rules": cfg["review_rules"],
+        "mastered": sum(1 for x in sched.values() if x["due"] is None),
+        "weak_tags": weak_tags(cfg, records),
     }
 
 
@@ -207,7 +242,10 @@ def render_readme(cfg, records):
         "",
         f"- 현재 페이즈: **{s['phase']['key']} {s['phase']['name']}** ({s['phase']['start']} ~ {s['phase']['end']})",
         f"- 이번 주: {s['week']['done']} / {s['week']['target']}문제 (하루 최소 {s['phase']['daily_min']})",
-        f"- 로드맵: {s['roadmap_done']} / {s['roadmap_total']}문제",
+        f"- 로드맵: {s['roadmap_done']} / {s['roadmap_total']}문제 · 복습 졸업 🎓 {s['mastered']}문제",
+        f"- 오늘 복습: " + (", ".join(f"{r['id']} {r['title']}({r['reason']})" for r in s["today_redo"]) or "없음")
+        + (f" · 밀린 복습 {s['review_backlog']}개" if s["review_backlog"] else ""),
+        f"- 약점 유형: " + (", ".join(s["weak_tags"]) or "아직 없음"),
         f"- 레벨별 해결: " + ", ".join(f"Lv.{k} {v}개" for k, v in s["solved_by_level"].items()) if s["solved_by_level"] else "- 레벨별 해결: 아직 없음",
         "",
         "## 티어 기준 (자체 환산)",
@@ -219,11 +257,12 @@ def render_readme(cfg, records):
     for i, (th, n) in enumerate(tiers):
         hi = tiers[i + 1][0] - 1 if i + 1 < len(tiers) else 100
         lines.append(f"| {th}–{hi} | {n} |")
+    lines += ["", f"복습 규칙: {cfg['review_rules']}"]
     lines += ["", f"XP: Lv.0 0.5 · Lv.1 1 · Lv.2 3 · Lv.3 8 · Lv.4 15 · Lv.5 25 — {cfg['xp_rules']}", "",
               "## 풀이 기록", "", "| 날짜 | 문제 | Lv | 구분 | 결과 | 분 | 한 줄 기록 |", "|---|---|---|---|---|---|---|"]
     for r in reversed(records):
         link = f"[{r['id']} {r['title']}]({r['path']})" if r["path"] else f"{r['id']} {r['title']}"
-        lines.append(f"| {r['date']} | {link} | {r['level']} | {'재풀이' if r['kind'] == 'redo' else '첫 풀이'} | {r['result']} | {r['minutes']} | {r['note']} |")
+        lines.append(f"| {r['date']} | {link} | {r['level']} | {'복습' if r['kind'] == 'redo' else '첫 풀이'} | {r['result']} | {r['minutes']} | {r['note']} |")
     with open(os.path.join(ROOT, "README.md"), "w", encoding="utf-8") as f:
         f.write("\n".join(lines) + "\n")
 
@@ -279,7 +318,7 @@ def cmd_record(cfg, pid, kind, minutes=None):
     if not p:
         m = re.search(r"Lv\.(\d)", open(os.path.join(d, "NOTE.md"), encoding="utf-8").read())
         p = {"id": pid, "title": os.path.basename(d).split("_", 1)[1].replace("_", " "), "level": int(m.group(1)) if m else 0}
-    print(f"[{pid}] {p['title']} (Lv.{p['level']}) — {'재풀이' if kind == 'redo' else '첫 풀이'} 기록")
+    print(f"[{pid}] {p['title']} (Lv.{p['level']}) — {'복습' if kind == 'redo' else '첫 풀이'} 기록")
     res = RESULT[ask("결과? 1) ✅ 혼자 풀이  2) 💡 해설 참고  3) ❌ 미해결 : ", RESULT)]
     if minutes is None:
         minutes = ask("걸린 시간(분): ")
@@ -309,44 +348,70 @@ def cmd_record(cfg, pid, kind, minutes=None):
         return
     push = git("push")
     print("GitHub push 완료 ✅" if push.returncode == 0 else f"push 실패 — 나중에 git push 해주세요\n{push.stderr}")
-    if res != "✅":
-        print(f"재풀이 예정: {(today() + timedelta(days=cfg['redo_after_days'])).isoformat()}")
+    nxt = review_schedule(cfg, records).get(str(pid))
+    if nxt and nxt["due"]:
+        print(f"다음 복습: {nxt['due']} (아침 메일에 🔁로 나와요)")
+    elif nxt:
+        print("🎓 졸업! 이 문제는 더 이상 복습하지 않아요")
 
 
-def cmd_go(cfg):
-    """하루 한 번 이것만: 오늘 문제 열기 → 풀기 → 코드 복사 → Enter → 기록·GitHub 자동"""
-    s = status(cfg, load_records())
-    if s["today_redo"]:
-        pick, kind = s["today_redo"][0], "redo"
-    elif s["today_new"]:
-        pick, kind = s["today_new"][0], "first"
-    else:
-        sys.exit("로드맵 문제를 모두 풀었어요! 지원 기업 기출로 넘어가세요.")
+def solve_one(cfg, pick, kind):
+    """문제 하나: 브라우저 열기 → 타이머 → 코드 복사 → Enter → 기록·GitHub"""
     pid = pick["id"]
-    done_today = len(s["today_done"])
-    print(f"\n오늘 {done_today}문제 완료 · Lv.{s['level']:.1f} {s['tier']}")
-    print(f"{'🔁 재풀이 (해설 없이!)' if kind == 'redo' else '🆕 새 문제'}: {pid} {pick['title']} (Lv.{pick['level']})\n")
+    if kind == "redo":
+        print(f"\n🔁 복습 · {pid} {pick['title']} (Lv.{pick['level']}) — {pick['reason']}")
+        print("   이전 코드·해설 보지 말고 빈 화면에서 처음부터! (프로그래머스 '초기화' 버튼으로 코드 비우기)")
+    else:
+        print(f"\n🆕 새 문제 · {pid} {pick['title']} (Lv.{pick['level']} · {', '.join(pick.get('tags', []))})")
     if problem_dir(pid):
+        print(f"문제: {url(pid)}")
         if sys.platform == "darwin":
             subprocess.run(["open", url(pid)])
-        print(f"문제: {url(pid)}")
     else:
         cmd_new(cfg, pid)
     start = time.time()
-    print("\n① 브라우저에서 문제를 풀고 제출하세요.")
-    print("② 끝나면 프로그래머스 코드 창에서 ⌘A → ⌘C (코드 전체 복사)")
+    print("\n① 브라우저에서 풀고 제출")
+    print("② 프로그래머스 코드 창에서 ⌘A → ⌘C (코드 전체 복사)")
     input("③ 여기로 돌아와서 Enter ⏎ ")
     minutes = max(1, round((time.time() - start) / 60))
     code = subprocess.run(["pbpaste"], capture_output=True, text=True).stdout if sys.platform == "darwin" else ""
-    sol = os.path.join(problem_dir(pid), "Solution.java")
+    d = problem_dir(pid)
+    # 첫 풀이는 Solution.java, 복습은 날짜별 파일로 따로 저장 (이전 풀이와 비교 가능)
+    name = "Solution.java" if kind == "first" else f"Solution_{today().strftime('%Y%m%d')}.java"
     if "solution" in code:
-        with open(sol, "w", encoding="utf-8") as f:
+        with open(os.path.join(d, name), "w", encoding="utf-8") as f:
             f.write(code if code.endswith("\n") else code + "\n")
-        print("코드 저장 완료 ✅")
+        print(f"코드 저장 완료 ✅ ({name})")
     else:
-        print(f"⚠️ 클립보드에 코드가 없어서 저장 못 했어요. 나중에 {os.path.relpath(sol, ROOT)}에 붙여넣어 주세요.")
+        print(f"⚠️ 클립보드에 코드가 없어서 저장 못 했어요. 나중에 {os.path.relpath(os.path.join(d, name), ROOT)}에 붙여넣어 주세요.")
     cmd_record(cfg, pid, kind, minutes)
-    print("\n오늘 몫 끝! 밤 11시에 노션 데브로그로 정리돼요. 한 문제 더 하려면 다시 cote")
+
+
+def cmd_go(cfg):
+    """하루 한 번 이것만: 오늘 분량(복습 + 새 문제)을 순서대로 진행"""
+    s = status(cfg, load_records())
+    redo = s["today_redo"]
+    weak = [(r, "redo") for r in redo if r["last_result"] != "✅"]
+    light = [(r, "redo") for r in redo if r["last_result"] == "✅"]
+    plan = weak + [(p, "first") for p in s["today_new"]] + light
+    if not plan:
+        sys.exit("오늘 분량 끝! 더 하고 싶으면 내일 문제를 미리 봐도 돼요: ./cote today")
+    print(f"\n📅 {s['date']} · Lv.{s['level']:.1f} {s['tier']} · 🔥 {s['streak_days']}일 · 오늘 완료 {len(s['today_done'])}개")
+    print("오늘 분량 (⭐ = 바쁘면 이것만):")
+    for i, (p, k) in enumerate(plan):
+        tag = "🔁 복습" if k == "redo" else "🆕 새 문제"
+        print(f"  {'⭐' if i == 0 else '  '} {tag} {p['id']} {p['title']} (Lv.{p['level']})" + (f" — {p['reason']}" if k == "redo" else ""))
+    if s["review_backlog"]:
+        print(f"  (밀린 복습 {s['review_backlog']}개는 내일 이후로 자동 배치)")
+    for i, (p, k) in enumerate(plan):
+        if i > 0:
+            nxt = f"{'🔁 복습' if k == 'redo' else '🆕 새 문제'} {p['id']} {p['title']}"
+            if input(f"\n다음: {nxt} — 계속할까요? (Enter=계속 / q=오늘은 여기까지) ").strip().lower() == "q":
+                break
+        solve_one(cfg, p, k)
+        if i == 0:
+            print("\n✅ 오늘 최소 분량 달성! 연속일 유지돼요.")
+    print("\n오늘 끝! 밤 11시에 노션 데브로그로 정리돼요.")
 
 
 def cmd_today(cfg, records):
@@ -358,9 +423,11 @@ def cmd_today(cfg, records):
     print(f"이번 주 {s['week']['done']}/{s['week']['target']} · 오늘 완료 {len(s['today_done'])}/{s['phase']['daily_min']}")
     print(f"\n포커스: {s['phase']['focus']}\n")
     if s["today_redo"]:
-        print("🔁 재풀이 (해설 없이):")
+        print("🔁 복습 (해설·이전 코드 없이):")
         for r in s["today_redo"]:
-            print(f"   {r['id']} {r['title']} (Lv.{r['level']}, 지난 결과 {r['last_result']}) {r['url']}")
+            print(f"   {r['id']} {r['title']} (Lv.{r['level']}, {r['reason']}) {r['url']}")
+        if s["review_backlog"]:
+            print(f"   + 밀린 복습 {s['review_backlog']}개")
     print("🆕 새 문제:")
     for p in s["today_new"]:
         print(f"   {p['id']} {p['title']} (Lv.{p['level']} · {', '.join(p['tags'])}) {p['url']}")
