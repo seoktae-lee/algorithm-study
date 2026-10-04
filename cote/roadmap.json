@@ -38,15 +38,19 @@
    60
   ],
   [
-   460,
-   75
+   480,
+   72
   ],
   [
-   560,
-   90
+   650,
+   82
   ],
   [
-   660,
+   850,
+   92
+  ],
+  [
+   1000,
    100
   ]
  ],
@@ -1552,5 +1556,718 @@
    60
   ]
  },
- "quick_review_max_interval": 3
+ "quick_review_max_interval": 3,
+ "mock": {
+  "about": "모의고사 전용 '처음 보는 문제' 풀. 평소 연습에선 절대 꺼내지 않아 시험 날까지 미공개 상태를 유지. 백준 재개 시 cote ext로 확장",
+  "schedule": [
+   {
+    "from": "2026-12-21",
+    "every_days": 14,
+    "format": "mini"
+   },
+   {
+    "from": "2027-03-01",
+    "every_days": 7,
+    "format": "full"
+   },
+   {
+    "from": "2027-07-01",
+    "every_days": 7,
+    "format": "full"
+   }
+  ],
+  "formats": {
+   "mini": {
+    "levels": [
+     2,
+     2,
+     3
+    ],
+    "minutes": 120
+   },
+   "full": {
+    "levels": [
+     2,
+     3,
+     3
+    ],
+    "minutes": 150
+   }
+  },
+  "official_sets": [
+   {
+    "name": "2023 KAKAO BLIND RECRUITMENT",
+    "minutes": 300,
+    "not_before": "2027-05-01",
+    "problems": [
+     {
+      "id": 150370,
+      "title": "개인정보 수집 유효기간",
+      "level": 1,
+      "source": "programmers"
+     },
+     {
+      "id": 150369,
+      "title": "택배 배달과 수거하기",
+      "level": 2,
+      "source": "programmers"
+     },
+     {
+      "id": 150368,
+      "title": "이모티콘 할인행사",
+      "level": 2,
+      "source": "programmers"
+     },
+     {
+      "id": 150367,
+      "title": "표현 가능한 이진트리",
+      "level": 3,
+      "source": "programmers"
+     },
+     {
+      "id": 150366,
+      "title": "표 병합",
+      "level": 3,
+      "source": "programmers"
+     },
+     {
+      "id": 150365,
+      "title": "미로 탈출 명령어",
+      "level": 3,
+      "source": "programmers"
+     },
+     {
+      "id": 150364,
+      "title": "1,2,3 떨어트리기",
+      "level": 4,
+      "source": "programmers"
+     }
+    ]
+   },
+   {
+    "name": "2024 KAKAO WINTER INTERNSHIP",
+    "minutes": 240,
+    "not_before": "2027-05-01",
+    "problems": [
+     {
+      "id": 258712,
+      "title": "가장 많이 받은 선물",
+      "level": 1,
+      "source": "programmers"
+     },
+     {
+      "id": 258711,
+      "title": "도넛과 막대 그래프",
+      "level": 2,
+      "source": "programmers"
+     },
+     {
+      "id": 258709,
+      "title": "주사위 고르기",
+      "level": 3,
+      "source": "programmers"
+     },
+     {
+      "id": 258707,
+      "title": "n + 1 카드게임",
+      "level": 3,
+      "source": "programmers"
+     },
+     {
+      "id": 258705,
+      "title": "산 모양 타일링",
+      "level": 3,
+      "source": "programmers"
+     }
+    ]
+   }
+  ],
+  "pool": [
+   {
+    "id": 12902,
+    "title": "3 x n 타일링",
+    "level": 2,
+    "source": "programmers"
+   },
+   {
+    "id": 12923,
+    "title": "숫자 블록",
+    "level": 2,
+    "source": "programmers"
+   },
+   {
+    "id": 49993,
+    "title": "스킬트리",
+    "level": 2,
+    "source": "programmers"
+   },
+   {
+    "id": 68645,
+    "title": "삼각 달팽이",
+    "level": 2,
+    "source": "programmers"
+   },
+   {
+    "id": 68936,
+    "title": "쿼드압축 후 개수 세기",
+    "level": 2,
+    "source": "programmers"
+   },
+   {
+    "id": 77885,
+    "title": "2개 이하로 다른 비트",
+    "level": 2,
+    "source": "programmers"
+   },
+   {
+    "id": 86052,
+    "title": "빛의 경로 사이클",
+    "level": 2,
+    "source": "programmers"
+   },
+   {
+    "id": 86048,
+    "title": "입실 퇴실",
+    "level": 2,
+    "source": "programmers"
+   },
+   {
+    "id": 87377,
+    "title": "교점에 별 만들기",
+    "level": 2,
+    "source": "programmers"
+   },
+   {
+    "id": 131130,
+    "title": "혼자 놀기의 달인",
+    "level": 2,
+    "source": "programmers"
+   },
+   {
+    "id": 140107,
+    "title": "점 찍기",
+    "level": 2,
+    "source": "programmers"
+   },
+   {
+    "id": 147354,
+    "title": "테이블 해시 함수",
+    "level": 2,
+    "source": "programmers"
+   },
+   {
+    "id": 148652,
+    "title": "유사 칸토어 비트열",
+    "level": 2,
+    "source": "programmers"
+   },
+   {
+    "id": 148653,
+    "title": "마법의 엘리베이터",
+    "level": 2,
+    "source": "programmers"
+   },
+   {
+    "id": 160585,
+    "title": "혼자서 하는 틱택토",
+    "level": 2,
+    "source": "programmers"
+   },
+   {
+    "id": 169198,
+    "title": "당구 연습",
+    "level": 2,
+    "source": "programmers"
+   },
+   {
+    "id": 181187,
+    "title": "두 원 사이의 정수 쌍",
+    "level": 2,
+    "source": "programmers"
+   },
+   {
+    "id": 181188,
+    "title": "요격 시스템",
+    "level": 2,
+    "source": "programmers"
+   },
+   {
+    "id": 250135,
+    "title": "아날로그 시계",
+    "level": 2,
+    "source": "programmers"
+   },
+   {
+    "id": 250136,
+    "title": "[PCCP 기출문제] 2번 / 석유 시추",
+    "level": 2,
+    "source": "programmers"
+   },
+   {
+    "id": 12927,
+    "title": "야근 지수",
+    "level": 3,
+    "source": "programmers"
+   },
+   {
+    "id": 12938,
+    "title": "최고의 집합",
+    "level": 3,
+    "source": "programmers"
+   },
+   {
+    "id": 12904,
+    "title": "가장 긴 팰린드롬",
+    "level": 3,
+    "source": "programmers"
+   },
+   {
+    "id": 12907,
+    "title": "거스름돈",
+    "level": 3,
+    "source": "programmers"
+   },
+   {
+    "id": 12920,
+    "title": "선입 선출 스케줄링",
+    "level": 3,
+    "source": "programmers"
+   },
+   {
+    "id": 12979,
+    "title": "기지국 설치",
+    "level": 3,
+    "source": "programmers"
+   },
+   {
+    "id": 12987,
+    "title": "숫자 게임",
+    "level": 3,
+    "source": "programmers"
+   },
+   {
+    "id": 12942,
+    "title": "최적의 행렬 곱셈",
+    "level": 3,
+    "source": "programmers"
+   },
+   {
+    "id": 43237,
+    "title": "예산",
+    "level": 3,
+    "source": "programmers"
+   },
+   {
+    "id": 68646,
+    "title": "풍선 터트리기",
+    "level": 3,
+    "source": "programmers"
+   },
+   {
+    "id": 70130,
+    "title": "스타 수열",
+    "level": 3,
+    "source": "programmers"
+   },
+   {
+    "id": 76503,
+    "title": "모두 0으로 만들기",
+    "level": 3,
+    "source": "programmers"
+   },
+   {
+    "id": 77486,
+    "title": "다단계 칫솔 판매",
+    "level": 3,
+    "source": "programmers"
+   },
+   {
+    "id": 77886,
+    "title": "110 옮기기",
+    "level": 3,
+    "source": "programmers"
+   },
+   {
+    "id": 86053,
+    "title": "금과 은 운반하기",
+    "level": 3,
+    "source": "programmers"
+   },
+   {
+    "id": 87391,
+    "title": "공 이동 시뮬레이션",
+    "level": 3,
+    "source": "programmers"
+   },
+   {
+    "id": 92345,
+    "title": "사라지는 발판",
+    "level": 3,
+    "source": "programmers"
+   },
+   {
+    "id": 131129,
+    "title": "카운트 다운",
+    "level": 3,
+    "source": "programmers"
+   },
+   {
+    "id": 132266,
+    "title": "부대복귀",
+    "level": 3,
+    "source": "programmers"
+   },
+   {
+    "id": 133500,
+    "title": "등대",
+    "level": 3,
+    "source": "programmers"
+   },
+   {
+    "id": 136797,
+    "title": "숫자 타자 대회",
+    "level": 3,
+    "source": "programmers"
+   },
+   {
+    "id": 152995,
+    "title": "인사고과",
+    "level": 3,
+    "source": "programmers"
+   },
+   {
+    "id": 161988,
+    "title": "연속 펄스 부분 수열의 합",
+    "level": 3,
+    "source": "programmers"
+   },
+   {
+    "id": 181186,
+    "title": "아방가르드 타일링",
+    "level": 3,
+    "source": "programmers"
+   },
+   {
+    "id": 214288,
+    "title": "상담원 인원",
+    "level": 3,
+    "source": "programmers"
+   },
+   {
+    "id": 214289,
+    "title": "에어컨",
+    "level": 3,
+    "source": "programmers"
+   },
+   {
+    "id": 72415,
+    "title": "카드 짝 맞추기",
+    "level": 3,
+    "source": "programmers"
+   },
+   {
+    "id": 42893,
+    "title": "매칭 점수",
+    "level": 3,
+    "source": "programmers"
+   },
+   {
+    "id": 12983,
+    "title": "단어 퍼즐",
+    "level": 4,
+    "source": "programmers"
+   },
+   {
+    "id": 49995,
+    "title": "쿠키 구입",
+    "level": 4,
+    "source": "programmers"
+   },
+   {
+    "id": 62050,
+    "title": "지형 이동",
+    "level": 4,
+    "source": "programmers"
+   },
+   {
+    "id": 118670,
+    "title": "행렬과 연산",
+    "level": 4,
+    "source": "programmers"
+   },
+   {
+    "id": 81304,
+    "title": "미로 탈출",
+    "level": 4,
+    "source": "programmers"
+   },
+   {
+    "id": 67260,
+    "title": "동굴 탐험",
+    "level": 4,
+    "source": "programmers"
+   },
+   {
+    "id": 72416,
+    "title": "매출 하락 최소화",
+    "level": 4,
+    "source": "programmers"
+   },
+   {
+    "id": 42894,
+    "title": "블록 게임",
+    "level": 4,
+    "source": "programmers"
+   }
+  ]
+ },
+ "readiness": {
+  "about": "처음 보는 문제(모의고사·외부 문제 첫 풀이)만 집계. 통과 = ✅ 그리고 시간 박스 안. 레벨별 최근 10문제, 3문제 이상일 때 판정",
+  "time_box": {
+   "1": 20,
+   "2": 30,
+   "3": 60,
+   "4": 90,
+   "5": 120
+  },
+  "criteria": [
+   {
+    "name": "대기업 IT·금융",
+    "need": {
+     "2": 0.8
+    }
+   },
+   {
+    "name": "무신사·삼성SDS",
+    "need": {
+     "2": 0.8,
+     "3": 0.5
+    }
+   },
+   {
+    "name": "네카라쿠배",
+    "need": {
+     "2": 0.9,
+     "3": 0.7
+    }
+   }
+  ]
+ },
+ "tracks": {
+  "sql": {
+   "enabled": true,
+   "name": "SQL 고득점 Kit",
+   "start": "2026-11-02",
+   "weekdays": [
+    1,
+    4
+   ],
+   "why": "정처기 실기·SQLD·백엔드 SQL 코테 동시 대비 (화·금 1문제, 레벨 게이지와 별도 집계)",
+   "problems": [
+    {
+     "id": 59034,
+     "title": "모든 레코드 조회하기",
+     "level": 1,
+     "source": "sql"
+    },
+    {
+     "id": 59035,
+     "title": "역순 정렬하기",
+     "level": 1,
+     "source": "sql"
+    },
+    {
+     "id": 59036,
+     "title": "아픈 동물 찾기",
+     "level": 1,
+     "source": "sql"
+    },
+    {
+     "id": 59037,
+     "title": "어린 동물 찾기",
+     "level": 1,
+     "source": "sql"
+    },
+    {
+     "id": 59403,
+     "title": "동물의 아이디와 이름",
+     "level": 1,
+     "source": "sql"
+    },
+    {
+     "id": 59404,
+     "title": "여러 기준으로 정렬하기",
+     "level": 1,
+     "source": "sql"
+    },
+    {
+     "id": 59405,
+     "title": "상위 n개 레코드",
+     "level": 1,
+     "source": "sql"
+    },
+    {
+     "id": 59038,
+     "title": "최솟값 구하기",
+     "level": 1,
+     "source": "sql"
+    },
+    {
+     "id": 59415,
+     "title": "최댓값 구하기",
+     "level": 1,
+     "source": "sql"
+    },
+    {
+     "id": 59406,
+     "title": "동물 수 구하기",
+     "level": 1,
+     "source": "sql"
+    },
+    {
+     "id": 59408,
+     "title": "중복 제거하기",
+     "level": 1,
+     "source": "sql"
+    },
+    {
+     "id": 59039,
+     "title": "이름이 없는 동물의 아이디",
+     "level": 1,
+     "source": "sql"
+    },
+    {
+     "id": 59407,
+     "title": "이름이 있는 동물의 아이디",
+     "level": 1,
+     "source": "sql"
+    },
+    {
+     "id": 59046,
+     "title": "루시와 엘라 찾기",
+     "level": 1,
+     "source": "sql"
+    },
+    {
+     "id": 59040,
+     "title": "고양이와 개는 몇 마리 있을까",
+     "level": 2,
+     "source": "sql"
+    },
+    {
+     "id": 59041,
+     "title": "동명 동물 수 찾기",
+     "level": 2,
+     "source": "sql"
+    },
+    {
+     "id": 59412,
+     "title": "입양 시각 구하기(1)",
+     "level": 2,
+     "source": "sql"
+    },
+    {
+     "id": 59410,
+     "title": "NULL 처리하기",
+     "level": 2,
+     "source": "sql"
+    },
+    {
+     "id": 59047,
+     "title": "이름에 el이 들어가는 동물 찾기",
+     "level": 2,
+     "source": "sql"
+    },
+    {
+     "id": 59409,
+     "title": "중성화 여부 파악하기",
+     "level": 2,
+     "source": "sql"
+    },
+    {
+     "id": 59414,
+     "title": "DATETIME에서 DATE로 형 변환",
+     "level": 2,
+     "source": "sql"
+    },
+    {
+     "id": 59042,
+     "title": "없어진 기록 찾기",
+     "level": 3,
+     "source": "sql"
+    },
+    {
+     "id": 59043,
+     "title": "있었는데요 없었습니다",
+     "level": 3,
+     "source": "sql"
+    },
+    {
+     "id": 59044,
+     "title": "오랜 기간 보호한 동물(1)",
+     "level": 3,
+     "source": "sql"
+    },
+    {
+     "id": 59411,
+     "title": "오랜 기간 보호한 동물(2)",
+     "level": 3,
+     "source": "sql"
+    },
+    {
+     "id": 59413,
+     "title": "입양 시각 구하기(2)",
+     "level": 4,
+     "source": "sql"
+    },
+    {
+     "id": 59045,
+     "title": "보호소에서 중성화한 동물",
+     "level": 4,
+     "source": "sql"
+    }
+   ]
+  },
+  "samsung": {
+   "enabled": false,
+   "name": "삼성 SW역량테스트",
+   "weekdays": [
+    5
+   ],
+   "why": "삼성SDS·삼성전자 지원 확정 시 켜기: 토요일마다 SWEA 모의 SW역량테스트 1문제 (cote ext로 기록)",
+   "url": "https://swexpertacademy.com/main/code/problem/problemList.do"
+  },
+  "boj": {
+   "enabled": false,
+   "name": "백준 (재개 시)",
+   "weekdays": [
+    2,
+    5
+   ],
+   "why": "백준 채점 재개되면 켜기: 수·토 유형 보강 1문제 (cote ext로 기록)",
+   "url": "https://www.acmicpc.net/"
+  }
+ },
+ "milestones": [
+  {
+   "date": "2026-11",
+   "what": "정처기 실기 (SQL 트랙이 같이 도움)"
+  },
+  {
+   "date": "2026-12-21",
+   "what": "첫 미니 모의고사 (2주 간격 시작)"
+  },
+  {
+   "date": "2027-03~04",
+   "what": "PCCP 1차 응시 — 목표 Lv.3 (일정은 프로그래머스 공지 확인)"
+  },
+  {
+   "date": "2027-05",
+   "what": "카카오 공식 기출 세트 실전 (5시간/4시간)"
+  },
+  {
+   "date": "2027-06",
+   "what": "PCCP 2차 — Lv.4 도전 · 학기 종료 시 '실전 정답률'로 지원 라인 확정"
+  }
+ ]
 }
