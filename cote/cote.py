@@ -2,7 +2,7 @@
 """코테 기록 CLI (프로그래머스 Java)
 
   ./cote today            오늘 풀 문제 + 재풀이 + 레벨 게이지
-  ./cote new 42576        문제 폴더 생성 (Solution.java + NOTE.md)
+  ./cote new 42576        문제 폴더 생성 (Solution.java + NOTE.md) + 브라우저로 문제 열기
   ./cote run 42576        로컬 실행 (Solution.main)
   ./cote done 42576       풀이 기록 → README 대시보드 갱신 → commit & push
   ./cote redo 42576       재풀이 기록 (해설 없이 다시 풀기)
@@ -249,6 +249,8 @@ def cmd_new(cfg, pid):
     with open(os.path.join(d, "NOTE.md"), "w", encoding="utf-8") as f:
         f.write(note)
     print(f"생성: {os.path.relpath(d, ROOT)}\n문제: {url(pid)}\n타이머 시작! 30~40분 고민 → 막히면 해설 → 덮고 다시 구현")
+    if sys.platform == "darwin":
+        subprocess.run(["open", url(pid)])  # 브라우저에서 문제 바로 열기
 
 
 def cmd_run(pid):
