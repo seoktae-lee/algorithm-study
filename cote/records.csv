@@ -1,0 +1,2 @@
+date,platform,id,title,level,kind,result,minutes,note,path
+2026-10-04,programmers,12903,가운데 글자 가져오기,1,first,💡,17,int len = s.length();,programmers/12903_가운데_글자_가져오기
