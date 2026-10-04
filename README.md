@@ -3,10 +3,12 @@
 2026.08.09 ~ 자료구조·알고리즘 풀이 기록 (HUFS CODE MASTER 기반)
 
 ## 풀이 언어
-Python 3
+- 훕코마(01~11 폴더): Python 3
+- 코테(`cote/`, 2026.10~): 프로그래머스 Java — 백엔드(Java/Spring) 공채 대비
 
 ## 커밋 컨벤션
-`solve: 훕코마 #번호 문제이름 - 핵심접근법`
+- `solve: 훕코마 #번호 문제이름 - 핵심접근법`
+- `solve: PGS #번호 문제이름 결과 - 한 줄 기록` (`./cote done`이 자동 커밋)
 
 ---
 
@@ -72,3 +74,17 @@ Python 3
 | 09_Greedy | Greedy Algorithm |
 | 10_Backtracking | Backtracking Algorithm |
 | 11_Graph | Graph Algorithm |
+| cote | 코테 마스터 플랜 — 프로그래머스 Java 풀이 + 레벨 게이지 ([대시보드](cote/README.md)) |
+
+## 코테 사용법
+
+```sh
+cd cote
+./cote today          # 오늘 풀 문제 + 재풀이 + 레벨 게이지
+./cote new 12903      # 문제 폴더 생성 (Solution.java + NOTE.md), 타이머 시작
+./cote run 12903      # 로컬 실행
+./cote done 12903     # 결과·시간·한 줄 기록 → 대시보드 갱신 → commit & push
+./cote redo 12903     # 3일 뒤 해설 없이 재풀이 기록
+```
+
+커리큘럼은 `cote/roadmap.json` (P1~P6, 150문제), 레벨은 XP 기반 0~100 자체 환산.
