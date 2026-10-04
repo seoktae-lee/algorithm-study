@@ -1,6 +1,8 @@
 #!/usr/bin/env python3
 """코테 기록 CLI (프로그래머스 Java)
 
+  cote                    ★ 매일 이것만: 오늘 문제 열기 → 풀고 코드 복사 → Enter → 기록·GitHub 자동
+
   ./cote today            오늘 풀 문제 + 재풀이 + 레벨 게이지
   ./cote new 42576        문제 폴더 생성 (Solution.java + NOTE.md) + 브라우저로 문제 열기
   ./cote run 42576        로컬 실행 (Solution.main)
@@ -8,7 +10,7 @@
   ./cote redo 42576       재풀이 기록 (해설 없이 다시 풀기)
   ./cote status [--json]  현재 위치 (루틴이 --json 사용)
 """
-import csv, json, math, os, re, subprocess, sys
+import csv, json, math, os, re, subprocess, sys, time
 from datetime import date, datetime, timedelta, timezone
 
 ROOT = os.path.dirname(os.path.abspath(__file__))
@@ -269,7 +271,7 @@ def git(*args):
     return subprocess.run(["git", *args], cwd=ROOT, capture_output=True, text=True)
 
 
-def cmd_record(cfg, pid, kind):
+def cmd_record(cfg, pid, kind, minutes=None):
     d = problem_dir(pid)
     p, _ = find_problem(cfg, pid)
     if not d:
@@ -279,7 +281,10 @@ def cmd_record(cfg, pid, kind):
         p = {"id": pid, "title": os.path.basename(d).split("_", 1)[1].replace("_", " "), "level": int(m.group(1)) if m else 0}
     print(f"[{pid}] {p['title']} (Lv.{p['level']}) — {'재풀이' if kind == 'redo' else '첫 풀이'} 기록")
     res = RESULT[ask("결과? 1) ✅ 혼자 풀이  2) 💡 해설 참고  3) ❌ 미해결 : ", RESULT)]
-    minutes = ask("걸린 시간(분): ")
+    if minutes is None:
+        minutes = ask("걸린 시간(분): ")
+    else:
+        print(f"걸린 시간: {minutes}분 (자동 측정)")
     note = ask("한 줄 기록 (핵심 아이디어 / 막힌 지점): ").replace("|", "/")
     rec = {"date": today().isoformat(), "platform": "programmers", "id": str(pid), "title": p["title"],
            "level": str(p["level"]), "kind": kind, "result": res, "minutes": minutes, "note": note,
@@ -308,6 +313,42 @@ def cmd_record(cfg, pid, kind):
         print(f"재풀이 예정: {(today() + timedelta(days=cfg['redo_after_days'])).isoformat()}")
 
 
+def cmd_go(cfg):
+    """하루 한 번 이것만: 오늘 문제 열기 → 풀기 → 코드 복사 → Enter → 기록·GitHub 자동"""
+    s = status(cfg, load_records())
+    if s["today_redo"]:
+        pick, kind = s["today_redo"][0], "redo"
+    elif s["today_new"]:
+        pick, kind = s["today_new"][0], "first"
+    else:
+        sys.exit("로드맵 문제를 모두 풀었어요! 지원 기업 기출로 넘어가세요.")
+    pid = pick["id"]
+    done_today = len(s["today_done"])
+    print(f"\n오늘 {done_today}문제 완료 · Lv.{s['level']:.1f} {s['tier']}")
+    print(f"{'🔁 재풀이 (해설 없이!)' if kind == 'redo' else '🆕 새 문제'}: {pid} {pick['title']} (Lv.{pick['level']})\n")
+    if problem_dir(pid):
+        if sys.platform == "darwin":
+            subprocess.run(["open", url(pid)])
+        print(f"문제: {url(pid)}")
+    else:
+        cmd_new(cfg, pid)
+    start = time.time()
+    print("\n① 브라우저에서 문제를 풀고 제출하세요.")
+    print("② 끝나면 프로그래머스 코드 창에서 ⌘A → ⌘C (코드 전체 복사)")
+    input("③ 여기로 돌아와서 Enter ⏎ ")
+    minutes = max(1, round((time.time() - start) / 60))
+    code = subprocess.run(["pbpaste"], capture_output=True, text=True).stdout if sys.platform == "darwin" else ""
+    sol = os.path.join(problem_dir(pid), "Solution.java")
+    if "solution" in code:
+        with open(sol, "w", encoding="utf-8") as f:
+            f.write(code if code.endswith("\n") else code + "\n")
+        print("코드 저장 완료 ✅")
+    else:
+        print(f"⚠️ 클립보드에 코드가 없어서 저장 못 했어요. 나중에 {os.path.relpath(sol, ROOT)}에 붙여넣어 주세요.")
+    cmd_record(cfg, pid, kind, minutes)
+    print("\n오늘 몫 끝! 밤 11시에 노션 데브로그로 정리돼요. 한 문제 더 하려면 다시 cote")
+
+
 def cmd_today(cfg, records):
     s = status(cfg, records)
     print(f"📅 {s['date']} · {s['phase']['key']} {s['phase']['name']}")
@@ -328,10 +369,13 @@ def cmd_today(cfg, records):
 def main():
     cfg = load_cfg()
     a = sys.argv[1:]
-    if not a or a[0] in ("-h", "--help"):
+    if a and a[0] in ("-h", "--help"):
         print(__doc__)
         return
-    cmd = a[0]
+    cmd = a[0] if a else "go"
+    if cmd == "go":
+        cmd_go(cfg)
+        return
     if cmd == "today":
         cmd_today(cfg, load_records())
     elif cmd == "status":

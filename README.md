@@ -80,6 +80,7 @@
 
 ```sh
 cd cote
+./cote                # ★ 매일 이것만: 오늘 문제 열기 → 풀고 코드 복사 → Enter → 기록·GitHub 자동
 ./cote today          # 오늘 풀 문제 + 재풀이 + 레벨 게이지
 ./cote new 12903      # 문제 폴더 생성 (Solution.java + NOTE.md), 타이머 시작
 ./cote run 12903      # 로컬 실행
