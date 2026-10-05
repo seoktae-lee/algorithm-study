@@ -457,7 +457,7 @@ def render_readme(cfg, records):
         + (f" · 밀린 복습 {s['review_backlog']}개" if s["review_backlog"] else ""),
         "- 약점 유형: " + (", ".join(s["weak_tags"]) or "아직 없음"),
         f"- 📘 핵심노트: 발행 {s['notebook']['next_vol'] - 1}권 · 다음 Vol.{s['notebook']['next_vol']}까지 {s['notebook']['ready']} / {s['notebook']['threshold']}문제 ([notes/](notes/))",
-        (f"- ☕ 자바 기초: {s['java']['done']} / {s['java']['total']}레슨 · 카드 졸업 {s['java']['mastered']} ([java/](../java/README.md))" if s.get("java") else "- ☕ 자바 기초: -"),
+        (f"- ☕ 자바 기초: {s['java']['done']} / {s['java']['total']}회차 · 카드 졸업 {s['java']['mastered']} ([java/](../java/README.md))" if s.get("java") else "- ☕ 자바 기초: -"),
         "",
         "## 실전 정답률 (처음 보는 문제 기준)",
         "",

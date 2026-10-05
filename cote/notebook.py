@@ -202,8 +202,8 @@ def java_cheats(keys=None):
             done = {line.split(",")[1] for line in f.read().splitlines()[1:] if line}
     out = []
     for d in sorted(os.listdir(JAVA_LESSONS)) if os.path.isdir(JAVA_LESSONS) else []:
-        key = "L" + d[1:3]
-        if key not in done or (keys is not None and key not in keys):
+        key = d[:3]
+        if not key.startswith("L") or key not in done or (keys is not None and key not in keys):
             continue
         with open(os.path.join(JAVA_LESSONS, d, "README.md"), encoding="utf-8") as f:
             md = f.read()
