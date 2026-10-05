@@ -5,6 +5,8 @@
   cote mock               📝 모의고사 (처음 보는 문제, 시간 제한) — 예정일이면 cote가 알려줌
   cote ext                외부 문제 기록 (백준·SWEA·LeetCode 등 처음 보는 문제)
   cote track [이름 on|off] 트랙 보기/켜기 (sql, samsung, boj)
+  cote note [--all]       📘 핵심노트 PDF 발행 (복습 거친 문제 10개 모이면 cote가 먼저 물어봄) / --all 전체판만 재생성
+  (자바 기초는 터미널에서 `java` — ~/dev/algorithm-study/java)
 
   cote today              오늘 분량 + 레벨 + 실전 정답률
   cote plan               앞으로 2주 복습 일정
@@ -13,6 +15,8 @@
 """
 import csv, json, os, random, re, subprocess, sys, time
 from datetime import date, datetime, timedelta, timezone
+
+import notebook
 
 ROOT = os.path.dirname(os.path.abspath(__file__))
 RECORDS = os.path.join(ROOT, "records.csv")
@@ -129,6 +133,18 @@ def make_dir(p):
 def open_url(u):
     if sys.platform == "darwin":
         subprocess.run(["open", u])
+
+
+def java_status():
+    """자바 기초 CLI(java/jv.py)의 오늘 상태 — 없거나 실패하면 None"""
+    jv = os.path.join(os.path.dirname(ROOT), "java", "jv.py")
+    if not os.path.exists(jv):
+        return None
+    try:
+        p = subprocess.run([sys.executable, jv, "status", "--json"], capture_output=True, text=True, timeout=20)
+        return json.loads(p.stdout)
+    except Exception:
+        return None
 
 
 # ---------- 진척도 계산 ----------
@@ -400,6 +416,8 @@ def status(cfg, records, d=None):
         "mock": next_mock(cfg, d),
         "readiness": readiness(cfg, records),
         "milestones": cfg["milestones"],
+        "notebook": notebook.progress(records),
+        "java": java_status(),
     }
 
 
@@ -438,6 +456,8 @@ def render_readme(cfg, records):
         "- 오늘 복습: " + (", ".join(f"{r['id']} {r['title']}({r['reason']})" for r in s["today_redo"]) or "없음")
         + (f" · 밀린 복습 {s['review_backlog']}개" if s["review_backlog"] else ""),
         "- 약점 유형: " + (", ".join(s["weak_tags"]) or "아직 없음"),
+        f"- 📘 핵심노트: 발행 {s['notebook']['next_vol'] - 1}권 · 다음 Vol.{s['notebook']['next_vol']}까지 {s['notebook']['ready']} / {s['notebook']['threshold']}문제 ([notes/](notes/))",
+        (f"- ☕ 자바 기초: {s['java']['done']} / {s['java']['total']}레슨 · 카드 졸업 {s['java']['mastered']} ([java/](../java/README.md))" if s.get("java") else "- ☕ 자바 기초: -"),
         "",
         "## 실전 정답률 (처음 보는 문제 기준)",
         "",
@@ -591,8 +611,17 @@ def cmd_go(cfg):
         print(f"📝 모의고사 예정: {m['date']} ({m['count']}문제 {m['minutes']}분)")
     for t in reminders:
         print(f"🧩 {t['title']}: {t['why']} → {t['url']}")
+    j = s.get("java")
+    if j and j["pending"]:
+        what = ([f"카드 복습 {len(j['today_reviews'])}개"] if j["today_reviews"] else []) + \
+               ([f"{j['today_lesson']['key']} {j['today_lesson']['title']}"] if j["today_lesson"] else [])
+        print(f"☕ 자바 기초 ({j['done']}/{j['total']}): 오늘 {' + '.join(what)} → 터미널에 `java`")
+    nb = s["notebook"]
+    if nb["ready"]:
+        print(f"📘 핵심노트 Vol.{nb['next_vol']}: {nb['ready']}/{nb['threshold']}문제 모임" + (" — 발행 가능!" if nb["ready"] >= nb["threshold"] else ""))
     if not plan:
         print("오늘 분량 끝! 👏")
+        offer_notebook(cfg)
         return
     print("오늘 분량 (⭐ = 바쁘면 이것만):")
     icon = lambda p, k: "🔁 복습" if k == "redo" else ("🗄️ SQL" if p.get("platform") == "sql" else "🆕 새 문제")
@@ -607,6 +636,43 @@ def cmd_go(cfg):
         if i == 0:
             print("\n✅ 오늘 최소 분량 달성! 연속일 유지돼요.")
     print("\n오늘 끝! 밤 11시에 노션 데브로그로 정리돼요.")
+    offer_notebook(cfg)
+
+
+def level_text(cfg, records):
+    s = status(cfg, records)
+    return f"Lv.{s['level']:.0f} {s['tier']}"
+
+
+def offer_notebook(cfg):
+    """복습 거친 문제가 기준 수만큼 모이면 핵심노트 발행 제안"""
+    records = load_records()
+    nb = notebook.progress(records)
+    if nb["ready"] < nb["threshold"]:
+        return
+    if ask(f"\n📘 복습을 거친 문제 {nb['ready']}개가 모였어요. 핵심노트 Vol.{nb['next_vol']} PDF를 만들까요? (3~5분) (y/n) ", {"y", "n"}) == "y":
+        cmd_note(cfg, [])
+
+
+def cmd_note(cfg, args):
+    records = load_records()
+    lv = level_text(cfg, records)
+    if "--all" in args:
+        path = notebook.rebuild_full(records, lv)
+        msg = "note: 핵심노트 전체판 재생성"
+    else:
+        res = notebook.publish(cfg, get_problem, records, lv, force=True)
+        if not res:
+            return
+        path, no = res
+        msg = f"note: 📘 핵심노트 Vol.{no} 발행"
+    if not path:
+        return
+    print(f"\n📘 완성: {os.path.relpath(path, ROOT)} (전체판: notes/핵심노트_전체.pdf)")
+    open_url(path)
+    render_readme(cfg, records)
+    commit_push(msg)
+    print("밤 11시 루틴이 노션 마스터 페이지 아래에 같은 내용을 페이지로 올려요. 인쇄는 열린 PDF에서 ⌘P")
 
 
 def cmd_mock(cfg):
@@ -711,6 +777,12 @@ def cmd_today(cfg, records):
         print(f"{'🗄️ SQL' if t['track'] == 'sql' else '🧩'} {t.get('id', '')} {t['title']} {t['url']}")
     m = s["mock"]
     print(f"📝 다음 모의고사: {m['date']}" + (" ← 오늘!" if m["due"] else ""))
+    j = s.get("java")
+    if j:
+        todo = [f"{r['key']} 카드 복습" for r in j["today_reviews"]] + ([f"{j['today_lesson']['key']} {j['today_lesson']['title']}"] if j["today_lesson"] else [])
+        print(f"☕ 자바 기초 {j['done']}/{j['total']}: " + (", ".join(todo) + " → `java`" if todo else "오늘 끝"))
+    nb = s["notebook"]
+    print(f"📘 핵심노트 Vol.{nb['next_vol']}: {nb['ready']}/{nb['threshold']}문제")
 
 
 def cmd_new(cfg, pid):
@@ -740,6 +812,8 @@ def main():
         cmd_ext(cfg)
     elif cmd == "track":
         cmd_track(cfg, a[1:])
+    elif cmd == "note":
+        cmd_note(cfg, a[1:])
     elif cmd == "today":
         cmd_today(cfg, records)
     elif cmd == "plan":
