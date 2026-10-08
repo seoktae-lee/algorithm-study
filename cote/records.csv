@@ -2,3 +2,4 @@ date,platform,id,title,level,kind,result,minutes,note,path
 2026-10-04,programmers,12903,가운데 글자 가져오기,1,first,💡,17,int len = s.length();,programmers/12903_가운데_글자_가져오기
 2026-10-05,programmers,12903,가운데 글자 가져오기,1,redo,✅,6,"String answer = """"; , int len = s.length(); , int mid = len / 2; 이렇게적인 세팅을 하는 부분이 처음에는 막혔었으나, 오늘은 이 부분을 떠올릴 수 있었다.",programmers/12903_가운데_글자_가져오기
 2026-10-05,programmers,12910,나누어 떨어지는 숫자 배열,1,first,💡,22,List<Integer> list = new ArrayList<>();,programmers/12910_나누어_떨어지는_숫자_배열
+2026-10-09,programmers,12910,나누어 떨어지는 숫자 배열,1,redo,💡,28,"자바 코테에서이는 패턴크기를 모르면 List로 모으고, 마지막에 배열로 바꾼다.",programmers/12910_나누어_떨어지는_숫자_배열
