@@ -6,3 +6,5 @@ date,platform,id,title,level,kind,result,minutes,note,path
 2026-10-09,programmers,12917,문자열 내림차순으로 배치하기,1,first,💡,54,import java.util.Arrays;,programmers/12917_문자열_내림차순으로_배치하기
 2026-10-09,programmers,12903,가운데 글자 가져오기,1,redo,✅,1,"길이를 2로 나눈 몫을 기준으로, 짝수면 mid부터 두 홀수면 mid부터 한글자를 substring으로 잘라낸다.",programmers/12903_가운데_글자_가져오기
 2026-10-11,programmers,12910,나누어 떨어지는 숫자 배열,1,redo,💡,44,"배열에서 divisor로 나누어떨어지는 수만 걸러내서 -> 오름차순 정렬(sort) -> 로 반환하고, 하나도 없느면 [-1]을 반환한다.",programmers/12910_나누어_떨어지는_숫자_배열
+2026-10-11,programmers,12935,제일 작은 수 제거하기,1,first,💡,242,"먼저 전체를 봐서 뺄 대상확정하고, 다시 훑으면 그것만 빼고틈없이 옮긴다.",programmers/12935_제일_작은_수_제거하기
+2026-10-11,programmers,12917,문자열 내림차순으로 배치하기,1,redo,💡,1,answer = new StringBuilder(new String(chars)),programmers/12917_문자열_내림차순으로_배치하기
