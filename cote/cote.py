@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """코테 기록 CLI (프로그래머스 Java)
 
-  cote                    ★ 매일 이것만: 복습 + 새 문제 + (화·금) SQL을 순서대로 → 코드 복사 → Enter → 기록·GitHub 자동
+  cote                    ★ 매일 이것만: 평일 = 어제 문제 복습 + 새 문제 1개 (+화·금 SQL) / 일요일 = 주간 복습 → 기록·GitHub 자동
   cote mock               📝 모의고사 (처음 보는 문제, 시간 제한) — 예정일이면 cote가 알려줌
   cote ext                외부 문제 기록 (백준·SWEA·LeetCode 등 처음 보는 문제)
   cote track [이름 on|off] 트랙 보기/켜기 (sql, samsung, boj)
@@ -9,7 +9,7 @@
   (자바 기초는 터미널에서 `java` — ~/dev/algorithm-study/java)
 
   cote today              오늘 분량 + 레벨 + 실전 정답률
-  cote plan               앞으로 2주 복습 일정
+  cote plan [일수]        앞으로 2주(기본) 하루별 일정 + 로드맵 완주 예상
   cote status [--json]    현재 위치 (루틴이 --json 사용)
   cote new|run|done|redo <번호>   수동 모드 (보통은 안 써도 됨)
 """
@@ -218,6 +218,18 @@ def curve_for(cfg, level):
     return cfg["review_curve"].get(str(level), cfg["review_curve"]["3"])
 
 
+def is_sunday(d):
+    return d.weekday() == 6
+
+
+def due_date(last, stage, curve):
+    """1일 차(전날 문제 복습)만 다음 날, 그 뒤 간격은 모두 그 날짜 이후 첫 일요일(주간 복습)로 모은다"""
+    d = date.fromisoformat(last) + timedelta(days=curve[stage])
+    if stage > 0:
+        d += timedelta(days=(6 - d.weekday()) % 7)
+    return d.isoformat()
+
+
 def review_schedule(cfg, records):
     """망각곡선 복습 상태: stage = 다음 복습이 curve의 몇 번째 간격인지 (len이면 졸업)"""
     sched = {}
@@ -229,7 +241,7 @@ def review_schedule(cfg, records):
             stage = 0                      # 첫 풀이·모의고사는 결과와 무관하게 1일 뒤부터
         else:
             stage = st["stage"] + 1 if ok else 0   # 성공 → 다음 간격, 실패 → 1일부터 다시
-        due = (date.fromisoformat(r["date"]) + timedelta(days=curve[stage])).isoformat() if stage < len(curve) else None
+        due = due_date(r["date"], stage, curve) if stage < len(curve) else None
         sched[pid] = {"id": pid, "title": r["title"], "level": int(r["level"]), "platform": r["platform"], "stage": stage,
                       "interval": curve[stage] if stage < len(curve) else None, "round": stage + 1, "rounds": len(curve),
                       "last": r["date"], "last_result": r["result"], "due": due}
@@ -237,15 +249,19 @@ def review_schedule(cfg, records):
 
 
 def review_queue(cfg, records, d):
-    """오늘 복습할 문제 (우선순위: 실패한 것 → 간격 대비 많이 밀린 것 → 간격 짧은 것)"""
+    """오늘 복습할 문제 (우선순위: 실패한 것 → 간격 대비 많이 밀린 것 → 간격 짧은 것)
+    평일은 어제·그제 푼 문제의 1일 차만, 일요일은 오래 밀린 것까지 전부 = 주간 복습"""
     due = []
     for x in review_schedule(cfg, records).values():
         if not x["due"] or x["due"] > d.isoformat() or x["last"] == d.isoformat():
             continue
         late = (d - date.fromisoformat(x["due"])).days
+        if not is_sunday(d) and (x["interval"] != 1 or late > 1):
+            continue
         quick = x["interval"] <= cfg["quick_review_max_interval"]
         mode = "빠른 회상 10분" if quick else "재풀이"
-        reason = ("약점 재도전 · " if x["last_result"] != "✅" else "") + f"{x['interval']}일 차 {mode} ({x['round']}/{x['rounds']}회)"
+        when = "전날 문제" if x["interval"] == 1 else "주간 복습"
+        reason = ("약점 재도전 · " if x["last_result"] != "✅" else "") + f"{when} · {mode} ({x['round']}/{x['rounds']}회)"
         if late:
             reason += f" · {late}일 밀림"
         p = get_problem(cfg, x["id"]) or {}
@@ -391,9 +407,13 @@ def status(cfg, records, d=None):
     queue = review_queue(cfg, records, d)
     quick = [x for x in queue if x["quick"]]
     full = [x for x in queue if not x["quick"]]
-    backlog = max(0, len(full) - ph["review_cap"])
-    # 망각곡선 유지 우선: 재풀이가 밀려 있으면 새 문제는 하루 1개로 줄인다
-    n_new = 1 if backlog else max(ph["daily_min"], 1)
+    sunday = is_sunday(d)
+    # 일요일 = 주간 복습만(새 문제 없음, 재풀이는 sunday_cap까지) / 평일 = 새 문제 1개 + 전날 문제 복습
+    cap = cfg["week_rule"]["sunday_cap"] if sunday else len(full)
+    backlog = max(0, len(full) - cap)
+    n_new = 0 if sunday else max(ph["daily_min"], 1)
+    weekly_left = 0 if sunday else sum(1 for x in review_schedule(cfg, records).values()
+                                        if x["due"] and x["due"] <= d.isoformat() and x["last"] != d.isoformat()) - len(queue)
     return {
         "date": d.isoformat(),
         "xp": round(xp, 1), "level": round(lv, 1), "tier": tier_of(cfg, lv),
@@ -406,9 +426,12 @@ def status(cfg, records, d=None):
         "week": {"start": ws.isoformat(), "end": we.isoformat(), "done": len(week_recs), "target": ph["weekly_target"]},
         "today_done": [{k: r[k] for k in ("id", "title", "platform", "kind", "result", "minutes", "note")} for r in today_recs],
         "today_new": next_new(cfg, records, d, n_new),
-        "today_redo": sorted(quick + full[:ph["review_cap"]], key=queue.index),
+        "day_type": "sunday_review" if sunday else "weekday",
+        "today_redo": sorted(quick + full[:cap], key=queue.index),
         "review_backlog": backlog,
+        "weekly_review_waiting": weekly_left,
         "review_rules": cfg["review_rules"],
+        "week_rule": cfg["week_rule"]["about"],
         "mastered": sum(1 for x in sched.values() if x["due"] is None),
         "weak_tags": weak_tags(cfg, records),
         "tracks_today": tracks_today(cfg, records, d),
@@ -604,6 +627,8 @@ def cmd_go(cfg):
     reminders = [t for t in s["tracks_today"] if t["track"] != "sql"]
     plan = redo[:1] + [(p, "first") for p in s["today_new"]] + sql + redo[1:]
     print(f"\n📅 {s['date']} · Lv.{s['level']:.1f} {s['tier']} · 🔥 {s['streak_days']}일 · 오늘 완료 {len(s['today_done'])}개")
+    if s["day_type"] == "sunday_review":
+        print("🗓️ 일요일 = 주간 복습 날 (새 문제 없음). 이번 주 문제 + 장기 복습을 해설 없이 다시 풀어요")
     m = s["mock"]
     if m["due"]:
         print(f"📝 모의고사 날이에요! 시간 될 때 `cote mock` ({m['count']}문제 {m['minutes']}분, 주말 추천)")
@@ -628,7 +653,9 @@ def cmd_go(cfg):
     for i, (p, k) in enumerate(plan):
         print(f"  {'⭐' if i == 0 else '  '} {icon(p, k)} {p['id']} {p['title']} (Lv.{p['level']})" + (f" — {p['reason']}" if k == "redo" else ""))
     if s["review_backlog"]:
-        print(f"  (밀린 재풀이 {s['review_backlog']}개는 내일 이후로 자동 배치, 새 문제는 1개로 줄였어요)")
+        print(f"  (재풀이 {s['review_backlog']}개는 다음 일요일로 넘어가요 — 오래 밀린 것부터 먼저 나와요)")
+    if s["weekly_review_waiting"]:
+        print(f"  (주간 복습 {s['weekly_review_waiting']}개가 일요일을 기다리는 중)")
     for i, (p, k) in enumerate(plan):
         if i > 0 and input(f"\n다음: {icon(p, k)} {p['id']} {p['title']} — 계속할까요? (Enter=계속 / q=오늘은 여기까지) ").strip().lower() == "q":
             break
@@ -742,16 +769,60 @@ def cmd_track(cfg, args):
     print("\n켜기/끄기: cote track samsung on")
 
 
-def cmd_plan(cfg, records, days=14):
-    """앞으로 N일 복습 일정 (망각곡선)"""
-    sched = review_schedule(cfg, records)
-    d0 = today()
+def simulate(cfg, records, d0, days):
+    """하루도 안 빠지고 전부 ✅라고 가정하고 앞으로의 하루별 분량을 미리 돌려본다"""
+    sim, out = list(records), []
     for i in range(days):
-        d = (d0 + timedelta(days=i)).isoformat()
-        items = [x for x in sched.values() if x["due"] and (x["due"] == d or (i == 0 and x["due"] < d))]
-        if items:
-            print(f"{d}: " + ", ".join(f"{x['id']} {x['title']}({x['interval']}일 차)" for x in items))
+        d = d0 + timedelta(days=i)
+        s = status(cfg, sim, d)
+        done_today = {r["id"] for r in s["today_done"]}
+        new = [p for p in s["today_new"] if p["id"] not in done_today]
+        if any(r["kind"] == "first" and r["platform"] == "programmers" for r in s["today_done"]):
+            new = []  # 오늘 새 문제는 이미 풂
+        out.append((d, s["today_redo"], new, s["review_backlog"]))
+        for x in s["today_redo"]:
+            sim.append({"date": d.isoformat(), "platform": x["platform"], "id": x["id"], "title": x["title"],
+                        "level": str(x["level"]), "kind": "redo", "result": "✅", "minutes": "", "note": "", "path": ""})
+        for p in new:
+            sim.append({"date": d.isoformat(), "platform": "programmers", "id": p["id"], "title": p["title"],
+                        "level": str(p["level"]), "kind": "first", "result": "✅", "minutes": "", "note": "", "path": ""})
+    return out
+
+
+def roadmap_forecast(cfg, records, d0):
+    """평일 하루 1문제 속도로 남은 로드맵 문제를 날짜에 배치 → 페이즈별 끝나는 날"""
+    tried = {r["id"] for r in records}
+    if any(r["date"] == d0.isoformat() and r["kind"] == "first" and r["platform"] == "programmers" for r in records):
+        d0 += timedelta(days=1)
+    d, ends = d0, []
+    for ph in cfg["phases"]:
+        left = [p for p in ph["problems"] if str(p["id"]) not in tried]
+        for _ in left:
+            while is_sunday(d):
+                d += timedelta(days=1)
+            last, d = d, d + timedelta(days=1)
+        if ph["problems"]:
+            ends.append((ph, len(left), last if left else None))
+    return ends
+
+
+def cmd_plan(cfg, records, days=14):
+    """앞으로 N일 하루별 분량 + 로드맵 완주 예상"""
+    d0 = today()
+    print(f"🗓️ {cfg['week_rule']['about']}\n")
+    for d, redo, new, backlog in simulate(cfg, records, d0, days):
+        wd = "월화수목금토일"[d.weekday()]
+        parts = [f"🆕 {p['id']} {p['title']}(Lv.{p['level']})" for p in new]
+        parts += [f"🔁 {x['id']} {x['title']}" + ("" if x["interval"] == 1 else f"({x['round']}/{x['rounds']}회)") for x in redo]
+        if backlog:
+            parts.append(f"+재풀이 {backlog}개 다음 주로")
+        head = f"{d.isoformat()[5:]} {wd}" + (" 📚주간복습" if is_sunday(d) else "")
+        print(f"{head:16} " + (" · ".join(parts) or "쉬는 날"))
+    print("\n🧭 이 속도(평일 하루 1문제)면 로드맵은:")
+    for ph, left, end in roadmap_forecast(cfg, records, d0):
+        print(f"   {ph['key']} {ph['name']}: " + (f"남은 {left}문제 → {end.isoformat()} 완료 예상" if end else "완료 ✅"))
     m = next_mock(cfg, d0)
+    sched = review_schedule(cfg, records)
     print(f"📝 다음 모의고사 {m['date']} · 🎓 졸업 {sum(1 for x in sched.values() if x['due'] is None)}문제")
 
 
@@ -817,7 +888,7 @@ def main():
     elif cmd == "today":
         cmd_today(cfg, records)
     elif cmd == "plan":
-        cmd_plan(cfg, records)
+        cmd_plan(cfg, records, int(a[1]) if len(a) > 1 and a[1].isdigit() else 14)
     elif cmd == "status":
         s = status(cfg, records)
         print(json.dumps(s, ensure_ascii=False, indent=1) if "--json" in a else
