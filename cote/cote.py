@@ -316,6 +316,12 @@ def pick_mock(cfg, d, fmt_name):
     for s in cfg["mock"]["official_sets"]:
         if s["not_before"] <= d.isoformat() and not any(str(p["id"]) in tried for p in s["problems"]):
             return s["name"], [dict(p, id=str(p["id"])) for p in s["problems"]], s["minutes"]
+    # 리스트(코테_문제리스트.docx)에 적힌 회차 순서대로: 아직 하나도 안 푼 첫 회차
+    pool = {str(p["id"]): p for p in cfg["mock"]["pool"]}
+    for i, sess in enumerate(cfg["mock"].get("plan", []), 1):
+        if not any(pid in tried for pid in sess["ids"]):
+            picks = [dict(pool[pid], id=pid) for pid in sess["ids"]]
+            return f"{sess['format']} 모의고사 #{i}", picks, cfg["mock"]["formats"][sess["format"]]["minutes"]
     fmt = cfg["mock"]["formats"][fmt_name]
     official_ids = {str(p["id"]) for s in cfg["mock"]["official_sets"] for p in s["problems"]}
     left = [dict(p, id=str(p["id"])) for p in cfg["mock"]["pool"] if str(p["id"]) not in tried | official_ids]
