@@ -94,6 +94,9 @@ def get_problem(cfg, pid):
     for p in cfg["tracks"]["sql"]["problems"]:
         if str(p["id"]) == pid:
             return dict(p, id=pid, tags=["SQL"], platform="sql", url=pgs_url(pid), phase="SQL")
+    for p in cfg["tracks"].get("lv0", {}).get("problems", []):
+        if str(p["id"]) == pid:
+            return dict(p, id=pid, platform="programmers", url=pgs_url(pid), phase="Lv.0")
     ext = load_ext()
     if pid in ext:
         return dict(ext[pid], id=pid, tags=[], platform="ext", phase="외부")
@@ -381,6 +384,15 @@ def tracks_today(cfg, records, d):
                 p = left[0]
                 out.append({"track": key, "id": str(p["id"]), "title": p["title"], "level": p["level"],
                             "url": pgs_url(p["id"]), "platform": "sql", "tags": ["SQL"]})
+        elif key == "lv0":
+            ids = {str(p["id"]) for p in t["problems"]}
+            if any(r["id"] in ids and r["date"] == d.isoformat() for r in records):
+                continue
+            left = [p for p in t["problems"] if str(p["id"]) not in tried]
+            if left:
+                p = left[0]
+                out.append({"track": key, "id": str(p["id"]), "title": p["title"], "level": 0,
+                            "url": pgs_url(p["id"]), "platform": "programmers", "tags": p.get("tags", [])})
         else:
             out.append({"track": key, "title": t["name"], "url": t.get("url"), "why": t["why"]})
     return out
@@ -630,8 +642,9 @@ def cmd_go(cfg):
     s = status(cfg, load_records())
     redo = [(r, "redo") for r in s["today_redo"]]
     sql = [(t, "first") for t in s["tracks_today"] if t["track"] == "sql"]
-    reminders = [t for t in s["tracks_today"] if t["track"] != "sql"]
-    plan = redo[:1] + [(p, "first") for p in s["today_new"]] + sql + redo[1:]
+    lv0 = [(t, "first") for t in s["tracks_today"] if t["track"] == "lv0"]
+    reminders = [t for t in s["tracks_today"] if t["track"] not in ("sql", "lv0")]
+    plan = redo[:1] + [(p, "first") for p in s["today_new"]] + lv0 + sql + redo[1:]
     print(f"\n📅 {s['date']} · Lv.{s['level']:.1f} {s['tier']} · 🔥 {s['streak_days']}일 · 오늘 완료 {len(s['today_done'])}개")
     if s["day_type"] == "sunday_review":
         print("🗓️ 일요일 = 주간 복습 날 (새 문제 없음). 이번 주 문제 + 장기 복습을 해설 없이 다시 풀어요")
@@ -655,7 +668,7 @@ def cmd_go(cfg):
         offer_notebook(cfg)
         return
     print("오늘 분량 (⭐ = 바쁘면 이것만):")
-    icon = lambda p, k: "🔁 복습" if k == "redo" else ("🗄️ SQL" if p.get("platform") == "sql" else "🆕 새 문제")
+    icon = lambda p, k: "🔁 복습" if k == "redo" else ("🗄️ SQL" if p.get("platform") == "sql" else "🌱 Lv.0 기초" if p.get("level") == 0 else "🆕 새 문제")
     for i, (p, k) in enumerate(plan):
         print(f"  {'⭐' if i == 0 else '  '} {icon(p, k)} {p['id']} {p['title']} (Lv.{p['level']})" + (f" — {p['reason']}" if k == "redo" else ""))
     if s["review_backlog"]:
@@ -851,7 +864,7 @@ def cmd_today(cfg, records):
     for p in s["today_new"]:
         print(f"   {p['id']} {p['title']} (Lv.{p['level']} · {', '.join(p['tags'])}) {p['url']}")
     for t in s["tracks_today"]:
-        print(f"{'🗄️ SQL' if t['track'] == 'sql' else '🧩'} {t.get('id', '')} {t['title']} {t['url']}")
+        print(f"{ {'sql': '🗄️ SQL', 'lv0': '🌱 Lv.0'}.get(t['track'], '🧩')} {t.get('id', '')} {t['title']} {t['url']}")
     m = s["mock"]
     print(f"📝 다음 모의고사: {m['date']}" + (" ← 오늘!" if m["due"] else ""))
     j = s.get("java")
