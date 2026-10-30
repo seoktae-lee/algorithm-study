@@ -289,7 +289,19 @@ def next_new(cfg, records, d, n):
     i = cfg["phases"].index(ph)
     # 이전 페이즈에 못 푼 문제가 남아 있으면 그것부터
     order = [p for x in cfg["phases"][:i] + cfg["phases"][i:] for p in x["problems"]]
-    picks = [p for p in order if str(p["id"]) not in tried][:n]
+    # 단원 순서대로: Lv.0(개념 연습)은 바로 뒤 문제와 같은 날 붙여서 주고, 하루 개수(n)엔 안 센다
+    picks, main = [], 0
+    for p in order:
+        if main >= n:
+            break
+        if str(p["id"]) in tried:
+            if picks and picks[-1]["level"] == 0:
+                picks.pop()  # 짝(바로 뒤 문제)을 이미 푼 Lv.0은 건너뜀
+            continue
+        picks.append(p)
+        main += p["level"] != 0
+    while picks and picks[-1]["level"] == 0:
+        picks.pop()  # 짝이 될 본 문제가 오늘 분량에 없으면 Lv.0도 다음 날로
     return [dict(p, id=str(p["id"]), platform="programmers", url=pgs_url(p["id"])) for p in picks]
 
 
@@ -669,8 +681,9 @@ def cmd_go(cfg):
         return
     print("오늘 분량 (⭐ = 바쁘면 이것만):")
     icon = lambda p, k: "🔁 복습" if k == "redo" else ("🗄️ SQL" if p.get("platform") == "sql" else "🌱 Lv.0 기초" if p.get("level") == 0 else "🆕 새 문제")
+    star = next((i for i, (p, k) in enumerate(plan) if k == "redo" or p.get("level") != 0), 0)  # Lv.0은 최소 분량 아님
     for i, (p, k) in enumerate(plan):
-        print(f"  {'⭐' if i == 0 else '  '} {icon(p, k)} {p['id']} {p['title']} (Lv.{p['level']})" + (f" — {p['reason']}" if k == "redo" else ""))
+        print(f"  {'⭐' if i == star else '  '} {icon(p, k)} {p['id']} {p['title']} (Lv.{p['level']})" + (f" — {p['reason']}" if k == "redo" else ""))
     if s["review_backlog"]:
         print(f"  (재풀이 {s['review_backlog']}개는 다음 일요일로 넘어가요 — 오래 밀린 것부터 먼저 나와요)")
     if s["weekly_review_waiting"]:
@@ -679,7 +692,7 @@ def cmd_go(cfg):
         if i > 0 and input(f"\n다음: {icon(p, k)} {p['id']} {p['title']} — 계속할까요? (Enter=계속 / q=오늘은 여기까지) ").strip().lower() == "q":
             break
         solve_one(cfg, p, k)
-        if i == 0:
+        if i == star:
             print("\n✅ 오늘 최소 분량 달성! 연속일 유지돼요.")
     print("\n오늘 끝! 밤 11시에 노션 데브로그로 정리돼요.")
     offer_notebook(cfg)
@@ -796,7 +809,8 @@ def simulate(cfg, records, d0, days):
         s = status(cfg, sim, d)
         done_today = {r["id"] for r in s["today_done"]}
         new = [p for p in s["today_new"] if p["id"] not in done_today]
-        if any(r["kind"] == "first" and r["platform"] == "programmers" for r in s["today_done"]):
+        if any(r["kind"] == "first" and r["platform"] == "programmers" and get_problem(cfg, r["id"]) and get_problem(cfg, r["id"])["level"] != 0
+               for r in s["today_done"]):
             new = []  # 오늘 새 문제는 이미 풂
         out.append((d, s["today_redo"], new, s["review_backlog"]))
         for x in s["today_redo"]:
@@ -811,12 +825,12 @@ def simulate(cfg, records, d0, days):
 def roadmap_forecast(cfg, records, d0):
     """평일 하루 1문제 속도로 남은 로드맵 문제를 날짜에 배치 → 페이즈별 끝나는 날"""
     tried = {r["id"] for r in records}
-    if any(r["date"] == d0.isoformat() and r["kind"] == "first" and r["platform"] == "programmers" for r in records):
+    if any(r["date"] == d0.isoformat() and r["kind"] == "first" and r["platform"] == "programmers" and r["level"] != "0" for r in records):
         d0 += timedelta(days=1)
     d, ends = d0, []
     for ph in cfg["phases"]:
         left = [p for p in ph["problems"] if str(p["id"]) not in tried]
-        for _ in left:
+        for _ in [p for p in left if p["level"] != 0]:
             while is_sunday(d):
                 d += timedelta(days=1)
             last, d = d, d + timedelta(days=1)
